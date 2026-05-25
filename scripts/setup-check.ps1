@@ -70,10 +70,18 @@ Write-Host ""
 Write-Host "--- 飞书 CLI ---"
 Check-Cmd "lark-cli" "参考 docs/INSTALL.md 安装飞书 CLI"
 
-# 4. 即梦 CLI
+# 4. 即梦 CLI（如 OPENAI_API_KEY 已设置则为可选）
 Write-Host ""
 Write-Host "--- 即梦 CLI ---"
-Check-Cmd "dreamina" "Git Bash 中运行: curl -s https://jimeng.jianying.com/cli | bash"
+$hasOpenAI = [Environment]::GetEnvironmentVariable("OPENAI_API_KEY", "User")
+if (-not $hasOpenAI) { $hasOpenAI = $env:OPENAI_API_KEY }
+if (Get-Command "dreamina" -ErrorAction SilentlyContinue) {
+    Pass "dreamina CLI 已安装"
+} elseif ($hasOpenAI) {
+    Warn "dreamina CLI 未安装 — 但 OPENAI_API_KEY 已设置，封面将使用 GPT image 2"
+} else {
+    Fail "dreamina CLI 未安装且 OPENAI_API_KEY 未设置 — 需要至少配置一种生图方式"
+}
 
 # 5. 环境变量
 Write-Host ""
@@ -84,6 +92,14 @@ if ($geminiKey) {
     Pass "GEMINI_API_KEY 已设置"
 } else {
     Fail "GEMINI_API_KEY 未设置 — 在系统环境变量中添加 GEMINI_API_KEY"
+}
+
+$openaiKey = [Environment]::GetEnvironmentVariable("OPENAI_API_KEY", "User")
+if (-not $openaiKey) { $openaiKey = $env:OPENAI_API_KEY }
+if ($openaiKey) {
+    Pass "OPENAI_API_KEY 已设置 → 封面优先使用 GPT image 2"
+} else {
+    Warn "OPENAI_API_KEY 未设置 → 封面将使用 dreamina（如已安装）"
 }
 
 $proxy = [Environment]::GetEnvironmentVariable("HTTPS_PROXY", "User")

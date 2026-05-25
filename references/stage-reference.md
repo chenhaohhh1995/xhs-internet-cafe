@@ -198,6 +198,86 @@ for direction in ["A", "B"]:
 
 ---
 
+## 阶段4：封面生成（详细）
+
+### Step 0：检测生图引擎
+
+```bash
+# 优先级1：GPT image 2
+if [ -n "$OPENAI_API_KEY" ]; then
+  ENGINE="gpt-image-2"
+# 优先级2：即梦 dreamina
+elif command -v dreamina &> /dev/null; then
+  ENGINE="dreamina"
+else
+  echo "❌ 无可用的生图引擎。请设置 OPENAI_API_KEY 或安装 dreamina CLI。"
+  exit 1
+fi
+echo "使用引擎：$ENGINE"
+```
+
+### Step 1：路由决策 + 封面文案（两种引擎通用）
+
+从阶段3通过的正文中提取内容特征 → 按 `references/cover-guide.md` 执行路由决策 → 锁定每种方向的 2 种拆法 → 生成三行封面文案。
+
+每方向生成 2 组候选，共 4 组封面文案。
+
+### Step 2：随机配色 + 随机字号（通用）
+
+从 `references/jimeng-prompt-template.md` 八套配色方案中每张独立随机，四张不可全同。字号从随机池中独立随机。
+
+### Step 3：组装提示词（通用）
+
+按 `references/jimeng-prompt-template.md` 模板：固定开头（四宫格结构）→ 随机文字参数 → 固定文字渲染规则 → 负面提示词。
+
+### Step 4A：GPT image 2 生图（如引擎 = gpt-image-2）
+
+```bash
+PROXY=""
+[ -n "$HTTPS_PROXY" ] && PROXY="--proxy $HTTPS_PROXY"
+
+# 每张封面独立调用
+for direction in A B; do
+  for n in 1 2; do
+    curl --silent $PROXY \
+      -H "Authorization: Bearer $OPENAI_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d "{\"model\":\"gpt-image-2\",\"prompt\":\"<完整提示词>\",\"n\":1,\"size\":\"1024x1366\",\"response_format\":\"url\"}" \
+      "https://api.openai.com/v1/images/generations" \
+      > "$WORKSPACE/.temp_response_cover_${direction}${n}.json"
+    
+    # 解析返回的 URL 并下载图片
+    IMG_URL=$(python3 -c "import json; print(json.load(open('$WORKSPACE/.temp_response_cover_${direction}${n}.json'))['data'][0]['url'])")
+    curl --silent $PROXY -o "$WORKSPACE/cover_${direction}${n}.png" "$IMG_URL"
+  done
+done
+```
+
+### Step 4B：dreamina 生图（如引擎 = dreamina）
+
+```bash
+export PATH="$HOME/bin:$PATH"
+
+for direction in A B; do
+  for n in 1 2; do
+    dreamina image2image \
+      --images "$WORKSPACE/cover_01.jpg,$WORKSPACE/cover_02.jpg,$WORKSPACE/cover_03.jpg,$WORKSPACE/cover_04.jpg" \
+      --prompt "<完整提示词>" \
+      --ratio 3:4 \
+      --resolution_type 2k \
+      --model_version 5.0 \
+      --poll 120
+    # 输出文件重命名为 cover_{direction}{n}.png
+  done
+done
+```
+
+### Step 5：质量检查（通用）
+
+逐张检查：四宫格布局 / 分割线清晰 / 文字完整无乱码 / 居中无倾斜 / 配色一致 / 缩略图可读。不合格最多重试 2 次。
+
+---
+
 ## 阶段5：飞书打包（详细）
 
 ### Step 1：构建 .docx

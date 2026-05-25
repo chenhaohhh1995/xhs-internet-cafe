@@ -71,6 +71,76 @@ wait
 
 ---
 
+## GPT image 2（OpenAI 图生图）⭐ 封面生成首选
+
+### 优先级
+
+仅在 `$OPENAI_API_KEY` 已设置时使用。不可用时自动降级为即梦 dreamina。
+
+### 认证
+
+```bash
+# 检查环境变量
+echo "$OPENAI_API_KEY"
+```
+
+已设置 → 走 GPT image 2。未设置 → 跳过，使用 dreamina。
+
+### 端点
+
+```
+POST https://api.openai.com/v1/images/generations
+```
+
+### 调用方式（curl）
+
+```bash
+PROXY=""
+[ -n "$HTTPS_PROXY" ] && PROXY="--proxy $HTTPS_PROXY"
+
+curl --silent $PROXY \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-image-2",
+    "prompt": "<完整正向提示词，含固定开头+随机文字+文字渲染规则+负面约束>",
+    "n": 1,
+    "size": "1024x1366",
+    "response_format": "url"
+  }' \
+  "https://api.openai.com/v1/images/generations"
+```
+
+### 参数说明
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| `model` | `gpt-image-2` | GPT image 2 模型 |
+| `prompt` | 完整提示词字符串 | 四宫格描述 + 文字渲染约束（与即梦共用同一套提示词体系） |
+| `n` | 1 | 每次生成1张，4张封面需调4次 |
+| `size` | `1024x1366` | 接近 3:4 竖版比例 |
+| `response_format` | `url` | 返回临时下载 URL |
+
+### 提示词适配
+
+GPT image 2 的提示词与即梦共用同一套结构（固定开头 + 随机文字 + 文字渲染规则 + 负面提示词），无需额外修改。GPT image 2 对中文文字渲染精度更高，但仍需保留文字渲染规则约束。
+
+### 图像下载
+
+```bash
+curl --silent $PROXY -o "$WORKSPACE/cover_{direction}_{n}.png" "<image_url>"
+```
+
+### 错误处理
+
+| 错误 | 处理 |
+|------|------|
+| 401 | API Key 无效，降级为 dreamina |
+| 429 | 速率限制，等待后重试，仍失败则降级 |
+| 内容策略拒绝 | 简化提示词中可能敏感的描述，重试 |
+
+---
+
 ## lark-cli（飞书/Lark CLI）
 
 ### 用途

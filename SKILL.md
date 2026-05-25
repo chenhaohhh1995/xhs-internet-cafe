@@ -14,7 +14,8 @@ compatibility:
     - python>=3.9 with python-docx package
     - bash (built-in on macOS; Git Bash or WSL on Windows)
   required_envs:
-    - GEMINI_API_KEY (Gemini API authentication key)
+    - GEMINI_API_KEY (Gemini API authentication key, required)
+    - OPENAI_API_KEY (optional, GPT image 2 for cover generation; falls back to dreamina)
     - HTTPS_PROXY (optional, HTTP proxy for API calls if behind firewall)
   platform: "macOS | Windows (Git Bash / WSL)"
 ---
@@ -60,6 +61,7 @@ uname -s
 
 ```bash
 echo "$GEMINI_API_KEY"   # 必设。未设则停止，告知用户设置方法
+echo "$OPENAI_API_KEY"   # 可选。已设则封面优先用 GPT image 2，未设则用 dreamina
 echo "$HTTPS_PROXY"      # 可选。如在中国大陆网络环境通常需要
 ```
 
@@ -76,8 +78,9 @@ dreamina:  ✅ v5.0 / ❌ 未安装
 curl:      ✅ / ❌
 python:    ✅ 3.x.x / ❌
 python-docx: ✅ / ❌
-GEMINI_API_KEY: ✅ 已设置 / ❌ 未设置
-HTTPS_PROXY:    ✅ http://... / ⚠️ 未设置
+GEMINI_API_KEY:  ✅ 已设置 / ❌ 未设置
+OPENAI_API_KEY:  ✅ 已设置（封面用 GPT image 2）/ ⚠️ 未设置（封面用 dreamina）
+HTTPS_PROXY:     ✅ http://... / ⚠️ 未设置
 -----------------
 状态：全部就绪 / 有 X 项缺失，详见上方
 ```
@@ -210,9 +213,31 @@ AI 深度分析网吧信息 → 先跑路由决策 → 产出 **A/B 两个差异
 
 > 封面规范见 `references/cover-guide.md`，提示词模板见 `references/jimeng-prompt-template.md`
 
-每方向生成 2 张封面图，共4张。流程：路由决策 → 封面三行文案 → 随机配色+随机字号 → 组装即梦提示词（固定开头+随机文字参数+固定文字渲染规则+负面提示词）→ dreamina CLI 图生图。
+每方向生成 2 张封面图，共4张。
+
+### 生图引擎选择（自动检测）
+
+封面生成前，AI 自动检测可用引擎，**按优先级选择**：
+
+| 优先级 | 引擎 | 检测方式 | 说明 |
+|--------|------|---------|------|
+| **1（首选）** | GPT image 2 | 检查 `$OPENAI_API_KEY` 是否已设置 | OpenAI 原生图生图，文字渲染精度高 |
+| **2（备选）** | 即梦 dreamina | `which dreamina` 或 `dreamina --version` | 国内可访问，需积分 |
+
+**自检逻辑：**
+1. 先检查 `$OPENAI_API_KEY` → 已设置且能正常调用 → **走 GPT image 2**
+2. 不满足 → 检查 dreamina CLI 是否可用 → 可用 → **走即梦**
+3. 都不可用 → 告知用户配置其中一种后重试
+
+选定引擎后向用户报告：`🖼️ 阶段4：使用 {引擎名} 生成封面…`
+
+### 通用流程（两种引擎一致）
+
+路由决策 → 封面三行文案 → 随机配色+随机字号 → 组装提示词（固定开头+随机文字参数+固定文字渲染规则+负面提示词）→ 生图。
 
 生成后逐项检查（四宫格/分割线/文字完整/居中/配色/缩略图可读性），不合格重试最多2次。
+
+> GPT image 2 详细调用方式见 `references/tools-reference.md`，即梦调用方式同上文档。
 
 ---
 

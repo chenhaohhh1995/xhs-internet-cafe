@@ -102,13 +102,15 @@ echo ""
 echo "--- 飞书 CLI ---"
 check_cmd "lark-cli" "参考 docs/INSTALL.md 安装飞书 CLI"
 
-# 4. 即梦 CLI
+# 4. 即梦 CLI（如 OPENAI_API_KEY 已设置则为可选）
 echo ""
 echo "--- 即梦 CLI ---"
 if command -v dreamina &> /dev/null; then
   pass "dreamina CLI 已安装"
+elif [ -n "$OPENAI_API_KEY" ]; then
+  warn "dreamina CLI 未安装 — 但 OPENAI_API_KEY 已设置，封面将使用 GPT image 2"
 else
-  fail "dreamina CLI 未安装 — 运行: curl -s https://jimeng.jianying.com/cli | bash"
+  fail "dreamina CLI 未安装且 OPENAI_API_KEY 未设置 — 需要至少配置一种生图方式"
 fi
 
 # 5. 环境变量
@@ -118,6 +120,12 @@ if [ -n "$GEMINI_API_KEY" ]; then
   pass "GEMINI_API_KEY 已设置"
 else
   fail "GEMINI_API_KEY 未设置 — 在 ~/.bashrc 或 ~/.zshrc 中添加: export GEMINI_API_KEY=\"your-key\""
+fi
+
+if [ -n "$OPENAI_API_KEY" ]; then
+  pass "OPENAI_API_KEY 已设置 → 封面优先使用 GPT image 2"
+else
+  warn "OPENAI_API_KEY 未设置 → 封面将使用 dreamina（如已安装）"
 fi
 
 if [ -n "$HTTPS_PROXY" ]; then
