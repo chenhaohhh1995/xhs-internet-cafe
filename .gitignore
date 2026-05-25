@@ -1,0 +1,28 @@
+# Secrets
+.env
+.env.local
+*.pem
+*_key
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Runtime workspace (generated per task)
+workspace/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Node (if used)
+node_modules/
