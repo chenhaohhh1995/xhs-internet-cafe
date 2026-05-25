@@ -36,10 +36,18 @@ compatibility:
 
 判断标准：以下任一条件满足即视为"首次使用"——
 - 用户说"第一次用""怎么用""帮我配置""安装好了然后呢"
+- 用户发来安装提示词，要求"帮我安装 xhs-internet-cafe skill"
 - 环境自检（Prerequisites Check）有任何 ❌ 项
 - 用户直接发来一条消息但未提供飞书链接，且系统中缺少必装工具或必设环境变量
 
-**引导流程：读 `references/onboarding.md`，按 5 个 Phase 执行——**
+**引导流程：读 `references/onboarding.md`，先判断入口场景——**
+
+| 入口 | 场景 | 处理 |
+|------|------|------|
+| A | 用户发来安装提示词，Skill 尚未 clone | 识别工具 → clone 仓库 → 验证安装 → 进 Phase 0 |
+| B | Skill 已安装，首次配置环境 | 直接进 Phase 0 |
+
+**Phase 流水线：**
 
 | Phase | 内容 | 自动化 |
 |-------|------|--------|

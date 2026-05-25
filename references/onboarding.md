@@ -4,9 +4,77 @@
 
 ---
 
+## 入口识别（首先判断）
+
+进入引导前，先判断用户从哪条路径进来的：
+
+| 场景 | 用户大概这样说 | 处理 |
+|------|-------------|------|
+| **A：安装提示词** | "帮我安装 xhs-internet-cafe skill""帮我安装并配置……仓库地址是……" | → 进「入口A：从安装提示词进入」 |
+| **B：Skill 已安装，首次使用** | "帮我做探店""第一次用""怎么用""帮我配置" | → 进 Phase 0 破冰 |
+
+---
+
+## 入口A：从安装提示词进入（Agent 自动安装 Skill）
+
+用户粘贴了一段安装提示词，要求你自动安装这个 Skill。**核心任务：把仓库 clone 到正确位置。**
+
+### A1：识别当前平台
+
+先自检你是哪个 AI 工具：
+
+```bash
+# 检测方法：查看进程名、环境变量、CLI 特征
+echo "Tool detection:"
+echo "CLAUDE_CODE=${CLAUDE_CODE:-not set}"
+echo "CODEX=${CODEX:-not set}"
+echo "GEMINI_CLI=${GEMINI_CLI:-not set}"
+```
+
+也可以通过当前工作目录或调用方式推断。如果无法确定，告知用户你无法识别，请用户告诉你是哪个工具。
+
+### A2：确定 skills 目录并 clone
+
+| 工具 | Skills 目录 | 验证方法 |
+|------|------------|---------|
+| Claude Code | `~/.claude/skills/` | `ls ~/.claude/skills/` |
+| Codex | `~/.codex/skills/` 或 `~/.openai/codex/skills/` | 逐一尝试 |
+| Gemini CLI | `~/.gemini/skills/` | `ls ~/.gemini/skills/` |
+| Copilot CLI | `~/.copilot/skills/` | `ls ~/.copilot/skills/` |
+
+如果都不存在，创建对应目录后 clone。如果目录已存在同名 skill，先删除旧版：
+
+```bash
+# 确定目录后执行
+SKILLS_DIR="$HOME/.claude/skills"  # 按识别结果替换
+rm -rf "$SKILLS_DIR/xhs-internet-cafe"
+git clone https://github.com/chenhaohhh1995/xhs-internet-cafe.git "$SKILLS_DIR/xhs-internet-cafe"
+```
+
+### A3：验证安装
+
+```bash
+ls "$SKILLS_DIR/xhs-internet-cafe/SKILL.md" && echo "✅ Skill 安装成功" || echo "❌ 安装失败"
+```
+
+**安装成功后告知用户：**
+
+```
+✅ xhs-internet-cafe 已安装到 {工具名} skills 目录
+
+接下来我帮你检查环境是否就绪……
+```
+
+然后进入 Phase 1（环境扫描），继续引导配置。
+
+---
+
 ## 引导阶段总览
 
 ```
+入口A  安装提示词 → 识别工具 → clone 仓库 → 验证安装
+入口B  Skill 已安装，首次使用
+        │
 Phase 0  破冰 → 打招呼，设预期
 Phase 1  扫描 → 全自动检测 OS + 工具 + 环境变量
 Phase 2  修复 → 逐项处理缺失项（交互式，一次一个）
